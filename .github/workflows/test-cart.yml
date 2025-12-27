@@ -66,7 +66,7 @@ jobs:
             "buildName": "${{ github.workflow }}",
             "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
             "buildOrder": "${{ github.run_number }}",
-            "reportUrl": "https://sherlock0731.github.io/qa-ui-framework/"
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           }
           EOFINNER
 
@@ -83,19 +83,22 @@ jobs:
           EOFINNER
 
       # ─────────────────────────────────────────────
-      # Run Cart tests
+      # Run Cart tests (Cucumber)
       # ─────────────────────────────────────────────
       - name: Run Cart tests
         env:
           SAUCEDEMO_BASE_URL: ${{ secrets.SAUCEDEMO_BASE_URL }}
           USER_STANDARD_USERNAME: ${{ secrets.USER_STANDARD_USERNAME }}
           USER_STANDARD_PASSWORD: ${{ secrets.USER_STANDARD_PASSWORD }}
+          CHECKOUT_FIRSTNAME: ${{ secrets.CHECKOUT_FIRSTNAME }}
+          CHECKOUT_LASTNAME: ${{ secrets.CHECKOUT_LASTNAME }}
+          CHECKOUT_ZIPCODE: ${{ secrets.CHECKOUT_ZIPCODE }}
         run: |
           mvn test \
             -Denv=ci \
             -Dbrowser=${{ github.event.inputs.browser || 'chrome' }} \
             -Dheadless=true \
-            -Dgroups=cart \
+            -Dcucumber.filter.tags="@cart" \
             -Dallure.results.directory=target/allure-results
 
       # ─────────────────────────────────────────────
@@ -108,12 +111,15 @@ jobs:
       # ─────────────────────────────────────────────
       # Deploy Allure report to gh-pages
       # ─────────────────────────────────────────────
-      - name: Deploy Allure report
+      - name: Deploy Allure report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: target/site/allure-maven-plugin
+          keep_files: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
 
       # ─────────────────────────────────────────────
       # Upload artifacts
@@ -122,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-results-all
+          name: allure-results-cart
           path: target/allure-results
           retention-days: 30
 
@@ -130,7 +136,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-all
+          name: allure-report-cart
           path: target/site/allure-maven-plugin
           retention-days: 30
 
@@ -138,7 +144,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-logs-all
+          name: test-logs-cart
           path: target/logs/
           retention-days: 7
 
@@ -146,7 +152,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshots-all
+          name: screenshots-cart
           path: target/screenshots/
           retention-days: 7
 
@@ -155,4 +161,4 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: target/surefire-reports/*.xml
-          check_name: Test Results - All Tests
+          check_name: Test Results - Cart Tests
