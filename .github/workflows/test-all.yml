@@ -68,37 +68,42 @@ jobs:
           fi
 
       # ─────────────────────────────────────────────
-      # Create Allure executor.json
+      # Create Allure environment.properties in TEMP
       # ─────────────────────────────────────────────
-      - name: Create Allure executor info
+      - name: Create Allure environment info in temp
+        run: |
+          mkdir -p /tmp/allure-env
+          cat > /tmp/allure-env/environment.properties << EOF
+          Browser=${{ github.event.inputs.browser || 'chrome' }}
+          Browser.Version=stable
+          Threads=${{ github.event.inputs.thread_count || '4' }}
+          Profile=parallel-strict
+          Environment=CI
+          Platform=ubuntu-latest
+          Java.Version=17
+          Maven.Version=3.8+
+          Framework=Cucumber BDD
+          Workflow=${{ github.workflow }}
+          Run.Number=${{ github.run_number }}
+          Triggered.By=${{ github.actor }}
+          Branch=${{ github.ref_name }}
+          Commit=${{ github.sha }}
+          Repository=${{ github.repository }}
+          EOF
+          echo "Created environment.properties in /tmp/allure-env"
+          cat /tmp/allure-env/environment.properties
+
+      # ─────────────────────────────────────────────
+      # Copy environment.properties BEFORE clean
+      # ─────────────────────────────────────────────
+      - name: Prepare Allure results directory
         run: |
           mkdir -p target/allure-results
-          cat <<EOFINNER > target/allure-results/executor.json
-          {
-            "name": "GitHub Actions",
-            "type": "github",
-            "buildName": "${{ github.workflow }}",
-            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-            "buildOrder": "${{ github.run_number }}",
-            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          }
-          EOFINNER
+          cp /tmp/allure-env/environment.properties target/allure-results/
+          echo "Copied environment.properties to target/allure-results"
 
       # ─────────────────────────────────────────────
-      # Create Allure environment.properties
-      # ─────────────────────────────────────────────
-      - name: Create Allure environment info
-        run: |
-          cat <<EOFINNER > target/allure-results/environment.properties
-          Browser=${{ github.event.inputs.browser || 'chrome' }}
-          Threads=${{ github.event.inputs.thread_count || '4' }}
-          Environment=CI
-          Workflow=${{ github.workflow }}
-          Test Suite=All Tests
-          EOFINNER
-
-      # ─────────────────────────────────────────────
-      # Run UI tests (Cucumber)
+      # Run UI tests (JUnit) - clean will delete target/
       # ─────────────────────────────────────────────
       - name: Run UI tests
         env:
@@ -119,6 +124,36 @@ jobs:
             -Dallure.results.directory=target/allure-results
 
       # ─────────────────────────────────────────────
+      # Restore environment.properties AFTER clean
+      # ─────────────────────────────────────────────
+      - name: Restore environment.properties after clean
+        if: always()
+        run: |
+          if [ ! -f target/allure-results/environment.properties ]; then
+            cp /tmp/allure-env/environment.properties target/allure-results/
+            echo "Restored environment.properties after mvn clean"
+          else
+            echo "environment.properties already exists"
+          fi
+
+      # ─────────────────────────────────────────────
+      # Create Allure executor.json AFTER tests
+      # ─────────────────────────────────────────────
+      - name: Create Allure executor info
+        if: always()
+        run: |
+          cat > target/allure-results/executor.json << EOF
+          {
+            "name": "GitHub Actions",
+            "type": "github",
+            "buildName": "${{ github.workflow }} #${{ github.run_number }}",
+            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "buildOrder": ${{ github.run_number }},
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          }
+          EOF
+
+      # ─────────────────────────────────────────────
       # Restore Allure history before report generation
       # ─────────────────────────────────────────────
       - name: Restore Allure history
@@ -130,6 +165,20 @@ jobs:
             echo "Restored $(ls -1 target/allure-results/history 2>/dev/null | wc -l) history files"
           else
             echo "No history to restore"
+          fi
+
+      # ─────────────────────────────────────────────
+      # Verify environment.properties exists
+      # ─────────────────────────────────────────────
+      - name: Verify Allure files
+        if: always()
+        run: |
+          echo "Files in target/allure-results:"
+          ls -lah target/allure-results/ | grep -E "environment|executor" || echo "⚠️  Missing files!"
+          if [ -f target/allure-results/environment.properties ]; then
+            echo ""
+            echo "environment.properties content:"
+            cat target/allure-results/environment.properties
           fi
 
       # ─────────────────────────────────────────────
