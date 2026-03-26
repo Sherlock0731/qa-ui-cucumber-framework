@@ -69,6 +69,31 @@ public class LoginActionSteps extends BaseSteps {
         loginPage().login(CONFIG.lockedUsername(), CONFIG.lockedPassword());
     }
 
+    @When("user logs in as user type {string}")
+    @Когда("пользователь выполняет вход как пользователь типа {string}")
+    @Step("Выполнить вход как пользователь типа: {userType}")
+    public void userLogsInAsUserType(String userType) {
+        log.info("Logging in as user type: {}", userType);
+        String username;
+        String password;
+        switch (userType) {
+            case "standard_user" -> {
+                username = CONFIG.standardUsername();
+                password = CONFIG.standardPassword();
+            }
+            case "problem_user" -> {
+                username = CONFIG.problemUsername();
+                password = CONFIG.problemPassword();
+            }
+            case "performance_glitch_user" -> {
+                username = CONFIG.performanceUsername();
+                password = CONFIG.performancePassword();
+            }
+            default -> throw new IllegalArgumentException("Unknown user type: " + userType);
+        }
+        loginPage().login(username, password);
+    }
+
     @When("user clicks error close button")
     @Когда("пользователь нажимает кнопку закрытия ошибки")
     @Step("Нажать кнопку закрытия ошибки")

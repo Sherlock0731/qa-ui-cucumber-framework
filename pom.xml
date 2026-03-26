@@ -202,41 +202,48 @@
                     <includes>
                         <include>**/CucumberRunner.java</include>
                     </includes>
-                    
+
                     <!-- Настройки параллельности -->
                     <parallel>classes</parallel>
                     <threadCount>${parallel.threads}</threadCount>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
-                    
+
                     <groups>${test.groups}</groups>
-                    
+
                     <systemPropertyVariables>
                         <!-- Allure -->
                         <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
-                        
+
                         <!-- Browser settings -->
                         <browser>${browser}</browser>
                         <headless>${headless}</headless>
                         <browser.headless>${headless}</browser.headless>
                         <max.parallel.browsers>${max.parallel.browsers}</max.parallel.browsers>
-                        
+
                         <!-- JUnit Parallel Execution -->
                         <junit.jupiter.execution.parallel.enabled>true</junit.jupiter.execution.parallel.enabled>
-                        <junit.jupiter.execution.parallel.mode.default>concurrent</junit.jupiter.execution.parallel.mode.default>
-                        <junit.jupiter.execution.parallel.mode.classes.default>concurrent</junit.jupiter.execution.parallel.mode.classes.default>
-                        <junit.jupiter.execution.parallel.config.strategy>fixed</junit.jupiter.execution.parallel.config.strategy>
-                        <junit.jupiter.execution.parallel.config.fixed.parallelism>${parallel.threads}</junit.jupiter.execution.parallel.config.fixed.parallelism>
-                        <junit.jupiter.execution.parallel.config.fixed.max-pool-size>${parallel.threads}</junit.jupiter.execution.parallel.config.fixed.max-pool-size>
-                        
+                        <junit.jupiter.execution.parallel.mode.default>concurrent
+                        </junit.jupiter.execution.parallel.mode.default>
+                        <junit.jupiter.execution.parallel.mode.classes.default>concurrent
+                        </junit.jupiter.execution.parallel.mode.classes.default>
+                        <junit.jupiter.execution.parallel.config.strategy>fixed
+                        </junit.jupiter.execution.parallel.config.strategy>
+                        <junit.jupiter.execution.parallel.config.fixed.parallelism>${parallel.threads}
+                        </junit.jupiter.execution.parallel.config.fixed.parallelism>
+                        <junit.jupiter.execution.parallel.config.fixed.max-pool-size>${parallel.threads}
+                        </junit.jupiter.execution.parallel.config.fixed.max-pool-size>
+
                         <!-- Cucumber Parallel Execution -->
                         <cucumber.execution.parallel.enabled>false</cucumber.execution.parallel.enabled>
                         <cucumber.execution.parallel.mode.default>concurrent</cucumber.execution.parallel.mode.default>
-                        <cucumber.execution.parallel.mode.classes.default>concurrent</cucumber.execution.parallel.mode.classes.default>
+                        <cucumber.execution.parallel.mode.classes.default>concurrent
+                        </cucumber.execution.parallel.mode.classes.default>
                         <cucumber.execution.parallel.config.strategy>fixed</cucumber.execution.parallel.config.strategy>
-                        <cucumber.execution.parallel.config.fixed.parallelism>${parallel.threads}</cucumber.execution.parallel.config.fixed.parallelism>
+                        <cucumber.execution.parallel.config.fixed.parallelism>${parallel.threads}
+                        </cucumber.execution.parallel.config.fixed.parallelism>
                     </systemPropertyVariables>
-                    
+
                     <!-- JVM Arguments -->
                     <argLine>
                         -Xms2g -Xmx4g
@@ -396,8 +403,10 @@
                             <reuseForks>true</reuseForks>
                             <groups>${test.groups}</groups>
                             <systemPropertyVariables>
-                                <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
-                                <junit.jupiter.execution.parallel.enabled>false</junit.jupiter.execution.parallel.enabled>
+                                <allure.results.directory>${project.build.directory}/allure-results
+                                </allure.results.directory>
+                                <junit.jupiter.execution.parallel.enabled>false
+                                </junit.jupiter.execution.parallel.enabled>
                                 <selenide.browser>${browser}</selenide.browser>
                                 <selenide.headless>${headless}</selenide.headless>
                             </systemPropertyVariables>
@@ -434,16 +443,23 @@
                             <systemPropertyVariables>
                                 <!-- Cucumber Parallel Execution -->
                                 <cucumber.execution.parallel.enabled>true</cucumber.execution.parallel.enabled>
-                                <cucumber.execution.parallel.config.strategy>fixed</cucumber.execution.parallel.config.strategy>
-                                <cucumber.execution.parallel.config.fixed.parallelism>4</cucumber.execution.parallel.config.fixed.parallelism>
-                                <cucumber.execution.parallel.config.fixed.max-pool-size>4</cucumber.execution.parallel.config.fixed.max-pool-size>
-                                
+                                <cucumber.execution.parallel.config.strategy>fixed
+                                </cucumber.execution.parallel.config.strategy>
+                                <cucumber.execution.parallel.config.fixed.parallelism>4
+                                </cucumber.execution.parallel.config.fixed.parallelism>
+                                <cucumber.execution.parallel.config.fixed.max-pool-size>4
+                                </cucumber.execution.parallel.config.fixed.max-pool-size>
+
                                 <!-- JUnit Parallel Execution -->
-                                <junit.jupiter.execution.parallel.enabled>true</junit.jupiter.execution.parallel.enabled>
-                                <junit.jupiter.execution.parallel.config.strategy>fixed</junit.jupiter.execution.parallel.config.strategy>
-                                <junit.jupiter.execution.parallel.config.fixed.parallelism>4</junit.jupiter.execution.parallel.config.fixed.parallelism>
-                                <junit.jupiter.execution.parallel.config.fixed.max-pool-size>4</junit.jupiter.execution.parallel.config.fixed.max-pool-size>
-                                
+                                <junit.jupiter.execution.parallel.enabled>true
+                                </junit.jupiter.execution.parallel.enabled>
+                                <junit.jupiter.execution.parallel.config.strategy>fixed
+                                </junit.jupiter.execution.parallel.config.strategy>
+                                <junit.jupiter.execution.parallel.config.fixed.parallelism>4
+                                </junit.jupiter.execution.parallel.config.fixed.parallelism>
+                                <junit.jupiter.execution.parallel.config.fixed.max-pool-size>4
+                                </junit.jupiter.execution.parallel.config.fixed.max-pool-size>
+
                                 <!-- Browser settings -->
                                 <browser>${browser}</browser>
                                 <headless>${headless}</headless>
@@ -455,7 +471,7 @@
                 </plugins>
             </build>
         </profile>
-        
+
         <!-- Parallel-strict profile with specific thread count -->
         <profile>
             <id>parallel-strict</id>
@@ -473,16 +489,23 @@
                             <systemPropertyVariables>
                                 <!-- Cucumber Parallel Execution - переопределяем для динамического thread count -->
                                 <cucumber.execution.parallel.enabled>true</cucumber.execution.parallel.enabled>
-                                <cucumber.execution.parallel.config.strategy>fixed</cucumber.execution.parallel.config.strategy>
-                                <cucumber.execution.parallel.config.fixed.parallelism>${thread.count}</cucumber.execution.parallel.config.fixed.parallelism>
-                                <cucumber.execution.parallel.config.fixed.max-pool-size>${thread.count}</cucumber.execution.parallel.config.fixed.max-pool-size>
-                                
+                                <cucumber.execution.parallel.config.strategy>fixed
+                                </cucumber.execution.parallel.config.strategy>
+                                <cucumber.execution.parallel.config.fixed.parallelism>${thread.count}
+                                </cucumber.execution.parallel.config.fixed.parallelism>
+                                <cucumber.execution.parallel.config.fixed.max-pool-size>${thread.count}
+                                </cucumber.execution.parallel.config.fixed.max-pool-size>
+
                                 <!-- JUnit Parallel Execution -->
-                                <junit.jupiter.execution.parallel.enabled>true</junit.jupiter.execution.parallel.enabled>
-                                <junit.jupiter.execution.parallel.config.strategy>fixed</junit.jupiter.execution.parallel.config.strategy>
-                                <junit.jupiter.execution.parallel.config.fixed.parallelism>${thread.count}</junit.jupiter.execution.parallel.config.fixed.parallelism>
-                                <junit.jupiter.execution.parallel.config.fixed.max-pool-size>${thread.count}</junit.jupiter.execution.parallel.config.fixed.max-pool-size>
-                                
+                                <junit.jupiter.execution.parallel.enabled>true
+                                </junit.jupiter.execution.parallel.enabled>
+                                <junit.jupiter.execution.parallel.config.strategy>fixed
+                                </junit.jupiter.execution.parallel.config.strategy>
+                                <junit.jupiter.execution.parallel.config.fixed.parallelism>${thread.count}
+                                </junit.jupiter.execution.parallel.config.fixed.parallelism>
+                                <junit.jupiter.execution.parallel.config.fixed.max-pool-size>${thread.count}
+                                </junit.jupiter.execution.parallel.config.fixed.max-pool-size>
+
                                 <!-- Browser settings -->
                                 <browser>${browser}</browser>
                                 <headless>${headless}</headless>
