@@ -209,6 +209,13 @@
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
 
+                    <!-- Flaky test retry: повтор до 2 раз для нестабильных тестов -->
+                    <rerunFailingTestsCount>2</rerunFailingTestsCount>
+
+                    <!-- XML отчёты для CI систем -->
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <useFile>true</useFile>
+
                     <groups>${test.groups}</groups>
 
                     <systemPropertyVariables>
@@ -277,18 +284,6 @@
                 </configuration>
             </plugin>
 
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-
-                    <!-- Generate XML reports for CI systems -->
-                    <useFile>true</useFile>
-
-                    <!-- Flaky test retry -->
-                    <rerunFailingTestsCount>2</rerunFailingTestsCount>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
