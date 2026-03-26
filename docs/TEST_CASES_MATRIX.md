@@ -4,22 +4,27 @@
 
 | Модуль | Сценарии | Smoke | Positive | Negative | E2E | Critical |
 |--------|----------|-------|----------|----------|-----|----------|
-| Login | 5 | 1 | 2 | 3 | 0 | 2 |
+| Login | 8 | 1 | 5 | 3 | 0 | 2 |
 | Inventory | 6 | 3 | 4 | 2 | 0 | 2 |
 | Cart | 8 | 4 | 5 | 3 | 0 | 2 |
 | Checkout | 8 | 4 | 5 | 1 | 2 | 1 |
 | Navigation | 3 | 1 | 2 | 0 | 1 | 1 |
-| **ИТОГО** | **30** | **13** | **18** | **9** | **3** | **8** |
+| **ИТОГО** | **33** | **13** | **21** | **9** | **3** | **8** |
 
-## Login (5 сценариев)
+## Login (5 сценариев / 8 исполнений)
 
 | ID | Название | Приоритет | Теги | Описание |
 |----|----------|-----------|------|----------|
 | TC-001 | Успешная авторизация со стандартным пользователем | High | @login, @smoke, @positive | Авторизация с валидными креденшелами |
-| TC-002 | Успешная авторизация с различными типами пользователей | High | @login, @positive | Авторизация standard_user, problem_user, performance_glitch_user |
+| TC-002 | Успешная авторизация с различными типами пользователей | High | @login, @positive | Scenario Outline — 3 исполнения: |
+| TC-002a | ↳ standard_user | High | @login, @positive | Авторизация standard_user |
+| TC-002b | ↳ problem_user | High | @login, @positive | Авторизация problem_user |
+| TC-002c | ↳ performance_glitch_user | High | @login, @positive | Авторизация performance_glitch_user |
 | TC-003 | Валидация поля Username | Medium | @login, @negative | Пустое поле username |
 | TC-004 | Валидация поля Password | Medium | @login, @negative | Пустое поле password |
-| TC-005 | Авторизация с неверными учетными данными | High | @login, @negative, @critical | Неверный username/password |
+| TC-005 | Авторизация с неверными учетными данными | High | @login, @negative, @critical | Scenario Outline — 2 исполнения: |
+| TC-005a | ↳ invalid_user / invalid_pass | High | @login, @negative, @critical | Полностью неверные данные |
+| TC-005b | ↳ standard_user / invalid_pass | High | @login, @negative, @critical | Верный username, неверный пароль |
 
 ## Inventory (6 сценариев)
 
@@ -139,7 +144,7 @@
 ## Теги для фильтрации
 
 ### По модулям
-- `@login` - 5 тестов
+- `@login` - 5 сценариев / 8 исполнений
 - `@inventory` - 6 тестов
 - `@cart` - 8 тестов
 - `@checkout` - 8 тестов
@@ -185,4 +190,6 @@ mvn clean test -Dcucumber.filter.tags="@smoke or @critical"
 # 21 тест (с пересечениями), ~6-7 минут
 ```
 
-Полное покрытие всех 30 тест-кейсов обеспечивает проверку критичной функциональности SauceDemo приложения.
+Полное покрытие всех 30 тест-кейсов (33 исполнения с учётом Scenario Outline) обеспечивает проверку критичной функциональности SauceDemo приложения.
+
+> **Примечание:** TC-002 (3 Examples) и TC-005 (2 Examples) являются Scenario Outline — каждый Example запускается как отдельный тест в Allure. Поэтому в отчёте отображается 33 теста при 30 уникальных тест-кейсах.
