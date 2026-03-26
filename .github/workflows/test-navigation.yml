@@ -24,7 +24,7 @@ jobs:
       - name: Install browsers
         run: |
           sudo apt-get update
-          sudo apt-get install -y google-chrome-stable firefox
+          sudo apt-get install -y google-chrome-stable firefox-esr
 
       - name: Checkout gh-pages (Allure history)
         uses: actions/checkout@v4
