@@ -8,11 +8,6 @@ import qa.autotest.pages.*;
 /**
  * Base Steps class with common setup.
  *
- * CONFIG — instance-поле: Cucumber создаёт отдельный экземпляр каждого StepDef
- * класса на каждый сценарий. Статическое поле разделялось бы между всеми
- * экземплярами во всех тредах одновременно, что создаёт риск при параллельном
- * выполнении (один тред вызывает ConfigFactory.resetConfig() — сбрасывает для всех).
- *
  * Page Objects — создаются при каждом вызове accessor-метода.
  * Selenide Page Objects stateless: локаторы ($(".selector")) являются lazy proxy
  * и разрешаются в момент взаимодействия, не в момент создания объекта.

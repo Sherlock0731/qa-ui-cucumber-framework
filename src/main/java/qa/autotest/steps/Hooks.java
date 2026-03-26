@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 public class Hooks {
 
-    // instance-поле по той же причине что и в BaseSteps
     private final TestConfig CONFIG = ConfigFactory.getConfig();
 
     private static final AtomicBoolean isSelenideListenerRegistered = new AtomicBoolean(false);
@@ -48,11 +47,6 @@ public class Hooks {
 
     /**
      * Take screenshot on failure.
-     *
-     * Thread.sleep(1000) удалён: блокирующее ожидание без гарантии результата,
-     * создаёт искусственную задержку в параллельной среде.
-     * Selenide.screenshot() обращается к WebDriver текущего треда напрямую
-     * через WebDriverRunner — корректно работает с ThreadLocal драйвером.
      */
     @After(order = 10)
     public void takeScreenshot(Scenario scenario) {
@@ -106,11 +100,6 @@ public class Hooks {
     }
 
     private boolean getHeadlessMode() {
-        if (CONFIG.headless() != null) {
-            return CONFIG.headless();
-        } else if (CONFIG.browserHeadless() != null) {
-            return CONFIG.browserHeadless();
-        }
-        return false;
+        return Boolean.TRUE.equals(CONFIG.browserHeadless());
     }
 }

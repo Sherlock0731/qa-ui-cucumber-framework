@@ -9,8 +9,6 @@ import qa.autotest.steps.BaseSteps;
 @Slf4j
 public class CartAndCheckoutValidationSteps extends BaseSteps {
 
-    // ── Cart ─────────────────────────────────────────────────────────────────
-
     @Then("cart page is displayed")
     @То("отображается страница корзины")
     @Step("Проверить, что отображается страница корзины")
@@ -35,8 +33,6 @@ public class CartAndCheckoutValidationSteps extends BaseSteps {
         cartPage().shouldBeEmpty();
     }
 
-    // ── Checkout step one ────────────────────────────────────────────────────
-
     @Then("checkout step one page is displayed")
     @То("отображается первый шаг оформления заказа")
     @Step("Проверить, что отображается первый шаг оформления")
@@ -52,8 +48,6 @@ public class CartAndCheckoutValidationSteps extends BaseSteps {
         log.info("Verifying checkout error message: {}", message);
         checkoutStepOnePage().shouldHaveError(message);
     }
-
-    // ── Checkout step two ────────────────────────────────────────────────────
 
     @Then("checkout step two page is displayed")
     @То("отображается второй шаг оформления заказа")
@@ -112,8 +106,6 @@ public class CartAndCheckoutValidationSteps extends BaseSteps {
         log.info("Verifying total calculation");
         checkoutStepTwoPage().shouldHaveTotalEqualSubtotalPlusTax();
     }
-
-    // ── Checkout complete ────────────────────────────────────────────────────
 
     @Then("checkout complete page is displayed")
     @То("отображается страница завершения заказа")

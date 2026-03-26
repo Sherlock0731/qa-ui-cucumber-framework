@@ -11,8 +11,6 @@ import qa.autotest.steps.BaseSteps;
 @Slf4j
 public class CartAndCheckoutActionSteps extends BaseSteps {
 
-    // ── Cart ─────────────────────────────────────────────────────────────────
-
     @When("user opens cart page")
     @Когда("пользователь открывает страницу корзины")
     @Step("Открыть страницу корзины")
@@ -44,8 +42,6 @@ public class CartAndCheckoutActionSteps extends BaseSteps {
         log.info("Removing product from cart on cart page");
         cartPage().removeFirstItem();
     }
-
-    // ── Checkout step one ────────────────────────────────────────────────────
 
     @When("user fills checkout information with first name {string}, last name {string} and zip code {string}")
     @Когда("пользователь заполняет информацию для оформления с именем {string}, фамилией {string} и индексом {string}")
@@ -82,8 +78,6 @@ public class CartAndCheckoutActionSteps extends BaseSteps {
         checkoutStepOnePage().clickCancel();
     }
 
-    // ── Checkout step two ────────────────────────────────────────────────────
-
     @When("user clicks finish button")
     @Когда("пользователь нажимает кнопку завершить")
     @Step("Нажать кнопку завершить")
@@ -99,8 +93,6 @@ public class CartAndCheckoutActionSteps extends BaseSteps {
         log.info("Clicking cancel button on checkout step two");
         checkoutStepTwoPage().clickCancel();
     }
-
-    // ── Checkout complete ────────────────────────────────────────────────────
 
     @When("user clicks back to products button")
     @Когда("пользователь нажимает кнопку вернуться к товарам")
