@@ -1,11 +1,14 @@
 package qa.autotest.steps;
 
+import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.logevents.SelenideLogger;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.qameta.allure.selenide.AllureSelenide;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 import qa.autotest.framework.config.ConfigFactory;
 import qa.autotest.framework.config.TestConfig;
 import qa.autotest.framework.drivers.DriverManager;
@@ -61,6 +64,18 @@ public class Hooks {
                 Thread.currentThread().getName(), scenario.getName(), scenario.getStatus());
 
         if (needsWebDriver(scenario)) {
+            if (scenario.isFailed() && DriverManager.getCurrentThreadDriver() != null) {
+                try {
+                    byte[] screenshot = ((TakesScreenshot) DriverManager.getCurrentThreadDriver())
+                            .getScreenshotAs(OutputType.BYTES);
+                    scenario.attach(screenshot, "image/png", "Screenshot on failure");
+                    log.info("Thread {}: screenshot attached to scenario",
+                            Thread.currentThread().getName());
+                } catch (Exception e) {
+                    log.warn("Thread {}: failed to take screenshot: {}",
+                            Thread.currentThread().getName(), e.getMessage());
+                }
+            }
             DriverManager.quitDriver();
         }
     }
