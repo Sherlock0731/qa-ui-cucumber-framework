@@ -1,5 +1,7 @@
 package qa.autotest.pages;
 
+import com.codeborne.selenide.CollectionCondition;
+import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import qa.autotest.core.annotations.DefaultUrl;
@@ -13,38 +15,41 @@ import static com.codeborne.selenide.Selenide.$$;
 @DefaultUrl(url = "https://www.saucedemo.com/cart.html")
 public class CartPage extends PageObject {
 
-    @Name("Заголовок страницы")
-    private SelenideElement textTitle = $(".title");
+    private final SelenideElement    textTitle              = $(".title");
+    private final ElementsCollection listCartItems          = $$(".cart_item");
+    private final SelenideElement    buttonContinueShopping = $("[data-test='continue-shopping']");
+    private final SelenideElement    buttonCheckout         = $("[data-test='checkout']");
+    private final ElementsCollection buttonsRemove          = $$("button[id^='remove']");
 
-    @Name("Список товаров в корзине")
-    private ElementsCollection listCartItems = $$(".cart_item");
-
-    @Name("Кнопка 'Продолжить покупки'")
-    private SelenideElement buttonContinueShopping = $("[data-test='continue-shopping']");
-
-    @Name("Кнопка 'Оформить заказ'")
-    private SelenideElement buttonCheckout = $("[data-test='checkout']");
-
-    @Name("Кнопки 'Удалить'")
-    private ElementsCollection buttonsRemove = $$("button[id^='remove']");
-
-    public SelenideElement getTextTitle() {
-        return textTitle;
+    public CartPage clickCheckout() {
+        buttonCheckout.click();
+        return this;
     }
 
-    public ElementsCollection getListCartItems() {
-        return listCartItems;
+    public CartPage clickContinueShopping() {
+        buttonContinueShopping.click();
+        return this;
     }
 
-    public SelenideElement getButtonContinueShopping() {
-        return buttonContinueShopping;
+    public CartPage removeFirstItem() {
+        buttonsRemove.first().shouldBe(Condition.visible).click();
+        return this;
     }
 
-    public SelenideElement getButtonCheckout() {
-        return buttonCheckout;
+    public CartPage shouldBeDisplayed() {
+        textTitle
+            .shouldBe(Condition.visible)
+            .shouldHave(Condition.text("Your Cart"));
+        return this;
     }
 
-    public ElementsCollection getButtonsRemove() {
-        return buttonsRemove;
+    public CartPage shouldHaveItemCount(int count) {
+        listCartItems.shouldHave(CollectionCondition.size(count));
+        return this;
+    }
+
+    public CartPage shouldBeEmpty() {
+        listCartItems.shouldHave(CollectionCondition.size(0));
+        return this;
     }
 }

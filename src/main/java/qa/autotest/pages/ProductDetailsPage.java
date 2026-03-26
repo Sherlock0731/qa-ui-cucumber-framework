@@ -1,5 +1,6 @@
 package qa.autotest.pages;
 
+import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
 import qa.autotest.core.annotations.DefaultUrl;
 import qa.autotest.core.annotations.Name;
@@ -11,52 +12,51 @@ import static com.codeborne.selenide.Selenide.$;
 @DefaultUrl(url = "")
 public class ProductDetailsPage extends PageObject {
 
-    @Name("Название товара")
-    private SelenideElement textProductName = $(".inventory_details_name");
+    private final SelenideElement textProductName        = $(".inventory_details_name");
+    private final SelenideElement textProductDescription = $(".inventory_details_desc");
+    private final SelenideElement textProductPrice       = $(".inventory_details_price");
+    private final SelenideElement imageProduct           = $(".inventory_details_img");
+    private final SelenideElement buttonAddToCart        = $("button[data-test^='add-to-cart']");
+    private final SelenideElement buttonRemove           = $("button[data-test^='remove']");
+    private final SelenideElement buttonBackToProducts   = $("[data-test='back-to-products']");
 
-    @Name("Описание товара")
-    private SelenideElement textProductDescription = $(".inventory_details_desc");
-
-    @Name("Цена товара")
-    private SelenideElement textProductPrice = $(".inventory_details_price");
-
-    @Name("Изображение товара")
-    private SelenideElement imageProduct = $(".inventory_details_img");
-
-    @Name("Кнопка 'Добавить в корзину'")
-    private SelenideElement buttonAddToCart = $("button[data-test^='add-to-cart']");
-
-    @Name("Кнопка 'Удалить'")
-    private SelenideElement buttonRemove = $("button[data-test^='remove']");
-
-    @Name("Кнопка 'Назад к товарам'")
-    private SelenideElement buttonBackToProducts = $("[data-test='back-to-products']");
-
-    public SelenideElement getTextProductName() {
-        return textProductName;
+    public ProductDetailsPage addToCart() {
+        buttonAddToCart.shouldBe(Condition.visible).click();
+        return this;
     }
 
-    public SelenideElement getTextProductDescription() {
-        return textProductDescription;
+    public ProductDetailsPage removeFromCart() {
+        buttonRemove.shouldBe(Condition.visible).click();
+        return this;
     }
 
-    public SelenideElement getTextProductPrice() {
-        return textProductPrice;
+    public ProductDetailsPage clickBackToProducts() {
+        buttonBackToProducts.click();
+        return this;
     }
 
-    public SelenideElement getImageProduct() {
-        return imageProduct;
+    public ProductDetailsPage shouldBeDisplayed() {
+        textProductName.shouldBe(Condition.visible);
+        textProductDescription.shouldBe(Condition.visible);
+        textProductPrice.shouldBe(Condition.visible);
+        return this;
     }
 
-    public SelenideElement getButtonAddToCart() {
-        return buttonAddToCart;
+    public ProductDetailsPage shouldHaveName(String expectedName) {
+        textProductName.shouldHave(Condition.text(expectedName));
+        return this;
     }
 
-    public SelenideElement getButtonRemove() {
-        return buttonRemove;
+    public ProductDetailsPage shouldHavePriceVisible() {
+        textProductPrice.shouldBe(Condition.visible);
+        return this;
     }
 
-    public SelenideElement getButtonBackToProducts() {
-        return buttonBackToProducts;
+    public String getProductName() {
+        return textProductName.getText();
+    }
+
+    public String getProductPrice() {
+        return textProductPrice.getText();
     }
 }

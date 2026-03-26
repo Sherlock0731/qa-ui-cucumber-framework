@@ -1,51 +1,101 @@
 package qa.autotest.pages;
 
+import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
 import qa.autotest.core.annotations.DefaultUrl;
 import qa.autotest.core.annotations.Name;
 import qa.autotest.core.annotations.Optional;
 import qa.autotest.pages.flow.PageObject;
 
+import java.time.Duration;
+
 import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.webdriver;
+import static com.codeborne.selenide.WebDriverConditions.urlContaining;
 
 @Name("Страница логина")
 @DefaultUrl(url = "https://www.saucedemo.com")
 public class LoginPage extends PageObject {
 
-    @Name("Поле ввода имени пользователя")
-    private SelenideElement inputUsername = $("[data-test='username']");
-
-    @Name("Поле ввода пароля")
-    private SelenideElement inputPassword = $("[data-test='password']");
-
-    @Name("Кнопка входа")
-    private SelenideElement buttonLogin = $("[data-test='login-button']");
+    private final SelenideElement inputUsername = $("[data-test='username']");
+    private final SelenideElement inputPassword = $("[data-test='password']");
+    private final SelenideElement buttonLogin   = $("[data-test='login-button']");
 
     @Optional
-    @Name("Сообщение об ошибке")
-    private SelenideElement textError = $("[data-test='error']");
-
+    private final SelenideElement textError       = $("[data-test='error']");
     @Optional
-    @Name("Кнопка закрытия ошибки")
-    private SelenideElement buttonCloseError = $("[data-test='error-button']");
+    private final SelenideElement buttonCloseError = $("[data-test='error-button']");
 
-    public SelenideElement getInputUsername() {
-        return inputUsername;
+    public LoginPage waitForPage() {
+        inputUsername.shouldBe(Condition.visible, Duration.ofSeconds(10));
+        return this;
     }
 
-    public SelenideElement getInputPassword() {
-        return inputPassword;
+    public LoginPage enterUsername(String username) {
+        inputUsername.setValue(username);
+        return this;
     }
 
-    public SelenideElement getButtonLogin() {
-        return buttonLogin;
+    public LoginPage enterPassword(String password) {
+        inputPassword.setValue(password);
+        return this;
     }
 
-    public SelenideElement getTextError() {
-        return textError;
+    public LoginPage clickLogin() {
+        buttonLogin.shouldBe(Condition.enabled).click();
+        return this;
     }
 
-    public SelenideElement getButtonCloseError() {
-        return buttonCloseError;
+    public LoginPage login(String username, String password) {
+        enterUsername(username);
+        enterPassword(password);
+        clickLogin();
+        return this;
+    }
+
+    public LoginPage closeError() {
+        buttonCloseError.click();
+        return this;
+    }
+
+    public LoginPage shouldBeDisplayed() {
+        inputUsername.shouldBe(Condition.visible);
+        inputPassword.shouldBe(Condition.visible);
+        buttonLogin.shouldBe(Condition.visible);
+        return this;
+    }
+
+    public LoginPage shouldHaveError(String expectedText) {
+        textError
+            .shouldBe(Condition.visible, Duration.ofSeconds(5))
+            .shouldHave(Condition.exactText(expectedText));
+        return this;
+    }
+
+    public LoginPage shouldHaveErrorContaining(String text) {
+        textError
+            .shouldBe(Condition.visible, Duration.ofSeconds(5))
+            .shouldHave(Condition.matchText(".*" + text + ".*"));
+        return this;
+    }
+
+    public LoginPage shouldNotHaveError() {
+        textError.shouldNotBe(Condition.visible);
+        return this;
+    }
+
+    public LoginPage shouldHaveEmptyUsername() {
+        inputUsername.shouldHave(Condition.empty);
+        return this;
+    }
+
+    public LoginPage shouldHaveLoginButtonEnabled() {
+        buttonLogin.shouldBe(Condition.enabled);
+        return this;
+    }
+
+    public LoginPage shouldRedirectToInventory() {
+        webdriver().shouldHave(urlContaining("inventory.html"), Duration.ofSeconds(10));
+        return this;
     }
 }

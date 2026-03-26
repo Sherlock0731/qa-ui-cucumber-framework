@@ -1,5 +1,6 @@
 package qa.autotest.pages;
 
+import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
 import qa.autotest.core.annotations.DefaultUrl;
 import qa.autotest.core.annotations.Name;
@@ -12,53 +13,48 @@ import static com.codeborne.selenide.Selenide.$;
 @DefaultUrl(url = "https://www.saucedemo.com/checkout-step-one.html")
 public class CheckoutStepOnePage extends PageObject {
 
-    @Name("Заголовок страницы")
-    private SelenideElement textTitle = $(".title");
-
-    @Name("Поле ввода имени")
-    private SelenideElement inputFirstName = $("[data-test='firstName']");
-
-    @Name("Поле ввода фамилии")
-    private SelenideElement inputLastName = $("[data-test='lastName']");
-
-    @Name("Поле ввода почтового индекса")
-    private SelenideElement inputZipCode = $("[data-test='postalCode']");
-
-    @Name("Кнопка 'Продолжить'")
-    private SelenideElement buttonContinue = $("[data-test='continue']");
-
-    @Name("Кнопка 'Отмена'")
-    private SelenideElement buttonCancel = $("[data-test='cancel']");
+    private final SelenideElement textTitle      = $(".title");
+    private final SelenideElement inputFirstName = $("[data-test='firstName']");
+    private final SelenideElement inputLastName  = $("[data-test='lastName']");
+    private final SelenideElement inputZipCode   = $("[data-test='postalCode']");
+    private final SelenideElement buttonContinue = $("[data-test='continue']");
+    private final SelenideElement buttonCancel   = $("[data-test='cancel']");
 
     @Optional
-    @Name("Сообщение об ошибке")
-    private SelenideElement textError = $("[data-test='error']");
+    private final SelenideElement textError = $("[data-test='error']");
 
-    public SelenideElement getTextTitle() {
-        return textTitle;
+    // ── Actions ──────────────────────────────────────────────────────────────
+
+    public CheckoutStepOnePage fillInformation(String firstName, String lastName, String zipCode) {
+        inputFirstName.setValue(firstName);
+        inputLastName.setValue(lastName);
+        inputZipCode.setValue(zipCode);
+        return this;
     }
 
-    public SelenideElement getInputFirstName() {
-        return inputFirstName;
+    public CheckoutStepOnePage clickContinue() {
+        buttonContinue.click();
+        return this;
     }
 
-    public SelenideElement getInputLastName() {
-        return inputLastName;
+    public CheckoutStepOnePage clickCancel() {
+        buttonCancel.click();
+        return this;
     }
 
-    public SelenideElement getInputZipCode() {
-        return inputZipCode;
+    // ── Assertions ───────────────────────────────────────────────────────────
+
+    public CheckoutStepOnePage shouldBeDisplayed() {
+        textTitle
+            .shouldBe(Condition.visible)
+            .shouldHave(Condition.text("Checkout: Your Information"));
+        return this;
     }
 
-    public SelenideElement getButtonContinue() {
-        return buttonContinue;
-    }
-
-    public SelenideElement getButtonCancel() {
-        return buttonCancel;
-    }
-
-    public SelenideElement getTextError() {
-        return textError;
+    public CheckoutStepOnePage shouldHaveError(String message) {
+        textError
+            .shouldBe(Condition.visible)
+            .shouldHave(Condition.text(message));
+        return this;
     }
 }

@@ -1,5 +1,7 @@
 package qa.autotest.pages;
 
+import com.codeborne.selenide.CollectionCondition;
+import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import qa.autotest.core.annotations.DefaultUrl;
@@ -13,96 +15,73 @@ import static com.codeborne.selenide.Selenide.$$;
 @DefaultUrl(url = "https://www.saucedemo.com/checkout-step-two.html")
 public class CheckoutStepTwoPage extends PageObject {
 
-    @Name("Заголовок страницы")
-    private SelenideElement textTitle = $(".title");
+    private final SelenideElement    textTitle       = $(".title");
+    private final ElementsCollection listCartItems   = $$(".cart_item");
+    private final SelenideElement    textPaymentInfo = $("[data-test='payment-info-value']");
+    private final SelenideElement    textShippingInfo= $("[data-test='shipping-info-value']");
+    private final SelenideElement    textSubtotal    = $(".summary_subtotal_label");
+    private final SelenideElement    textTax         = $(".summary_tax_label");
+    private final SelenideElement    textTotal       = $(".summary_total_label");
+    private final SelenideElement    buttonFinish    = $("[data-test='finish']");
+    private final SelenideElement    buttonCancel    = $("[data-test='cancel']");
 
-    @Name("Список товаров")
-    private ElementsCollection listCartItems = $$(".cart_item");
-
-    @Name("Информация об оплате")
-    private SelenideElement textPaymentInfo = $("[data-test='payment-info-value']");
-
-    @Name("Информация о доставке")
-    private SelenideElement textShippingInfo = $("[data-test='shipping-info-value']");
-
-    @Name("Сумма товаров без налога")
-    private SelenideElement textSubtotal = $(".summary_subtotal_label");
-
-    @Name("Налог")
-    private SelenideElement textTax = $(".summary_tax_label");
-
-    @Name("Итоговая сумма")
-    private SelenideElement textTotal = $(".summary_total_label");
-
-    @Name("Кнопка 'Завершить'")
-    private SelenideElement buttonFinish = $("[data-test='finish']");
-
-    @Name("Кнопка 'Отмена'")
-    private SelenideElement buttonCancel = $("[data-test='cancel']");
-
-    public SelenideElement getTextTitle() {
-        return textTitle;
+    public CheckoutStepTwoPage clickFinish() {
+        buttonFinish.click();
+        return this;
     }
 
-    public ElementsCollection getListCartItems() {
-        return listCartItems;
+    public CheckoutStepTwoPage clickCancel() {
+        buttonCancel.click();
+        return this;
     }
 
-    public SelenideElement getTextPaymentInfo() {
-        return textPaymentInfo;
+    public CheckoutStepTwoPage shouldBeDisplayed() {
+        textTitle
+            .shouldBe(Condition.visible)
+            .shouldHave(Condition.text("Checkout: Overview"));
+        return this;
     }
 
-    public SelenideElement getTextShippingInfo() {
-        return textShippingInfo;
+    public CheckoutStepTwoPage shouldHaveItemCount(int count) {
+        listCartItems.shouldHave(CollectionCondition.size(count));
+        return this;
     }
 
-    public SelenideElement getTextSubtotal() {
-        return textSubtotal;
+    public CheckoutStepTwoPage shouldHavePriceSummaryVisible() {
+        textSubtotal.shouldBe(Condition.visible);
+        textTax.shouldBe(Condition.visible);
+        textTotal.shouldBe(Condition.visible);
+        return this;
     }
 
-    public SelenideElement getTextTax() {
-        return textTax;
+    public CheckoutStepTwoPage shouldHaveTotalEqualSubtotalPlusTax() {
+        double subtotal = parsePrice(textSubtotal.getText(), "Item total: $");
+        double tax      = parsePrice(textTax.getText(), "Tax: $");
+        double total    = parsePrice(textTotal.getText(), "Total: $");
+        double expected = Math.round((subtotal + tax) * 100.0) / 100.0;
+        double actual   = Math.round(total * 100.0) / 100.0;
+
+        if (Math.abs(expected - actual) > 0.01) {
+            throw new AssertionError(
+                String.format("Total %.2f != subtotal %.2f + tax %.2f (expected %.2f)",
+                    total, subtotal, tax, expected));
+        }
+        return this;
     }
 
-    public SelenideElement getTextTotal() {
-        return textTotal;
+    public double getSubtotal() {
+        return parsePrice(textSubtotal.getText(), "Item total: $");
     }
 
-    public SelenideElement getButtonFinish() {
-        return buttonFinish;
+    public double getTax() {
+        return parsePrice(textTax.getText(), "Tax: $");
     }
 
-    public SelenideElement getButtonCancel() {
-        return buttonCancel;
+    public double getTotal() {
+        return parsePrice(textTotal.getText(), "Total: $");
     }
-    
-    /**
-     * Get subtotal (item total) as Double
-     */
-    public Double getSubtotal() {
-        String subtotalText = textSubtotal.getText();
-        // Format: "Item total: $29.99"
-        String value = subtotalText.replace("Item total: $", "");
-        return Double.parseDouble(value);
-    }
-    
-    /**
-     * Get tax as Double
-     */
-    public Double getTax() {
-        String taxText = textTax.getText();
-        // Format: "Tax: $2.40"
-        String value = taxText.replace("Tax: $", "");
-        return Double.parseDouble(value);
-    }
-    
-    /**
-     * Get total as Double
-     */
-    public Double getTotal() {
-        String totalText = textTotal.getText();
-        // Format: "Total: $32.39"
-        String value = totalText.replace("Total: $", "");
-        return Double.parseDouble(value);
+
+    private double parsePrice(String text, String prefix) {
+        return Double.parseDouble(text.replace(prefix, "").trim());
     }
 }

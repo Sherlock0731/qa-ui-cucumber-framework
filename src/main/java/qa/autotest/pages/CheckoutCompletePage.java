@@ -1,5 +1,6 @@
 package qa.autotest.pages;
 
+import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
 import qa.autotest.core.annotations.DefaultUrl;
 import qa.autotest.core.annotations.Name;
@@ -11,31 +12,34 @@ import static com.codeborne.selenide.Selenide.$;
 @DefaultUrl(url = "https://www.saucedemo.com/checkout-complete.html")
 public class CheckoutCompletePage extends PageObject {
 
-    @Name("Заголовок страницы")
-    private SelenideElement textTitle = $(".title");
+    private final SelenideElement textTitle          = $(".title");
+    private final SelenideElement textCompleteHeader = $(".complete-header");
+    private final SelenideElement textCompleteText   = $(".complete-text");
+    private final SelenideElement buttonBackToProducts = $("[data-test='back-to-products']");
 
-    @Name("Заголовок подтверждения")
-    private SelenideElement textCompleteHeader = $(".complete-header");
-
-    @Name("Текст подтверждения")
-    private SelenideElement textCompleteText = $(".complete-text");
-
-    @Name("Кнопка 'Вернуться на главную'")
-    private SelenideElement buttonBackToProducts = $("[data-test='back-to-products']");
-
-    public SelenideElement getTextTitle() {
-        return textTitle;
+    public CheckoutCompletePage clickBackToProducts() {
+        buttonBackToProducts.click();
+        return this;
     }
 
-    public SelenideElement getTextCompleteHeader() {
-        return textCompleteHeader;
+    public CheckoutCompletePage shouldBeDisplayed() {
+        textTitle
+            .shouldBe(Condition.visible)
+            .shouldHave(Condition.text("Checkout: Complete!"));
+        return this;
     }
 
-    public SelenideElement getTextCompleteText() {
-        return textCompleteText;
+    public CheckoutCompletePage shouldHaveSuccessMessage(String message) {
+        textCompleteHeader
+            .shouldBe(Condition.visible)
+            .shouldHave(Condition.text(message));
+        return this;
     }
 
-    public SelenideElement getButtonBackToProducts() {
-        return buttonBackToProducts;
+    public CheckoutCompletePage shouldHaveCompleteText(String text) {
+        textCompleteText
+            .shouldBe(Condition.visible)
+            .shouldHave(Condition.text(text));
+        return this;
     }
 }
