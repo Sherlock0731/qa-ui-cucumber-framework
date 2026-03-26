@@ -36,13 +36,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
-          # Firefox через Mozilla PPA (deb, без snap — firefox-esr отсутствует в Ubuntu 24.04)
+          # Firefox через Mozilla PPA с pin-приоритетом (иначе apt выбирает snap-обёртку из Ubuntu noble)
           sudo install -d -m 0755 /etc/apt/keyrings
           wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg \
             -O- | sudo tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null
           echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] \
             https://packages.mozilla.org/apt mozilla main" \
             | sudo tee /etc/apt/sources.list.d/mozilla.list > /dev/null
+          echo -e "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000" \
+            | sudo tee /etc/apt/preferences.d/mozilla > /dev/null
           sudo apt-get update
           sudo apt-get install -y firefox
 
