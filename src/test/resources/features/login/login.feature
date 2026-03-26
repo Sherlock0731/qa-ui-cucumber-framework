@@ -12,17 +12,14 @@
   @TC-001
   @positive
   Сценарий: TC-001 Успешный вход с корректными учетными данными
-    Когда пользователь вводит имя пользователя "standard_user"
-    И пользователь вводит пароль "secret_sauce"
-    И пользователь нажимает кнопку входа
+    Когда пользователь выполняет вход как стандартный пользователь
     То пользователь перенаправлен на страницу каталога
     И отображается страница каталога
 
+  @TC-002
   @negative
-  Сценарий: Вход с заблокированным пользователем
-    Когда пользователь вводит имя пользователя "locked_out_user"
-    И пользователь вводит пароль "secret_sauce"
-    И пользователь нажимает кнопку входа
+  Сценарий: TC-002 Вход с заблокированным пользователем
+    Когда пользователь выполняет вход как заблокированный пользователь
     То отображается сообщение об ошибке "Epic sadface: Sorry, this user has been locked out."
 
   @TC-005
@@ -34,7 +31,7 @@
     То сообщение об ошибке содержит "<error_text>"
 
     Примеры:
-      | username      | password      | error_text                              |
-      | invalid_user  | secret_sauce  | Username and password do not match      |
-      | standard_user | invalid_pass  | Username and password do not match      |
-      |               |               | Username is required                    |
+      | username      | password     | error_text                         |
+      | invalid_user  | invalid_pass | Username and password do not match |
+      | standard_user | invalid_pass | Username and password do not match |
+      |               |              | Username is required               |

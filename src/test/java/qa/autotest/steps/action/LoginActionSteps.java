@@ -61,6 +61,14 @@ public class LoginActionSteps extends BaseSteps {
         loginPage().login(CONFIG.standardUsername(), CONFIG.standardPassword());
     }
 
+    @When("user logs in as locked user")
+    @Когда("пользователь выполняет вход как заблокированный пользователь")
+    @Step("Выполнить вход как заблокированный пользователь")
+    public void userLogsInAsLockedUser() {
+        log.info("Logging in as locked user");
+        loginPage().login(CONFIG.lockedUsername(), CONFIG.lockedPassword());
+    }
+
     @When("user clicks error close button")
     @Когда("пользователь нажимает кнопку закрытия ошибки")
     @Step("Нажать кнопку закрытия ошибки")
