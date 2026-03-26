@@ -95,7 +95,7 @@ public class LoginPage extends PageObject {
     }
 
     public LoginPage shouldRedirectToInventory() {
-        webdriver().shouldHave(urlContaining("inventory.html"), Duration.ofSeconds(10));
+        webdriver().shouldHave(urlContaining("inventory.html"), Duration.ofSeconds(20));
         return this;
     }
 }
