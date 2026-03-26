@@ -14,7 +14,6 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.safari.SafariDriver;
 import org.openqa.selenium.safari.SafariOptions;
-import qa.autotest.framework.config.ConfigFactory;
 import qa.autotest.framework.config.TestConfig;
 
 import java.net.MalformedURLException;
@@ -25,312 +24,260 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Manages WebDriver instances for different browsers
- * Thread-safe implementation with Semaphore for parallel execution control
+ * Manages WebDriver instances for different browsers.
+ * Thread-safe: ThreadLocal per-thread driver + Semaphore for browser count cap.
+ * <p>
+ * - Configuration.* инициализируется один раз до параллельного старта через
+ * configureSelenideOnce(), не в каждом потоке — глобальные static поля Selenide
+ * не thread-safe для записи.
+ * - config передаётся параметром во все private методы — исключает повторные
+ * вызовы ConfigFactory.getConfig() внутри createChromeDriver/Firefox/Edge.
  */
 @Slf4j
 public class DriverManager {
-    
-    // ThreadLocal для хранения WebDriver для каждого потока
+
     private static final ThreadLocal<WebDriver> driver = new ThreadLocal<>();
-    
-    // Semaphore для ограничения количества одновременных браузеров
+
     private static final int MAX_BROWSERS = Integer.parseInt(
             System.getProperty("max.parallel.browsers", "3")
     );
     private static final Semaphore browserSemaphore = new Semaphore(MAX_BROWSERS, true);
     private static final AtomicInteger activeBrowsers = new AtomicInteger(0);
-    
-    // ANSI цвета для логов
-    private static final String GREEN_TEXT = "\u001B[32m";
-    private static final String RED_TEXT = "\u001B[31m";
-    private static final String YELLOW_TEXT = "\u001B[33m";
-    private static final String CYAN_TEXT = "\u001B[36m";
-    private static final String RESET_TEXT = "\u001B[0m";
-    
+
+    private static volatile boolean selenideConfigured = false;
+
     private DriverManager() {
-        // Private constructor to prevent instantiation
     }
-    
-    /**
-     * Получить WebDriver для текущего потока
-     * @return WebDriver instance or null
-     */
+
     public static WebDriver getCurrentThreadDriver() {
         return driver.get();
     }
-    
-    /**
-     * Проверить здоровье драйвера
-     * @return true если драйвер активен
-     */
+
     public static boolean isDriverHealthy() {
         try {
-            WebDriver currentDriver = driver.get();
-            if (currentDriver != null) {
-                currentDriver.getTitle(); // Проверка что драйвер работает
+            WebDriver current = driver.get();
+            if (current != null) {
+                current.getTitle();
                 return true;
             }
         } catch (Exception e) {
-            log.debug("Thread {}: Driver is not healthy: {}", 
+            log.debug("Thread {}: driver is not healthy: {}",
                     Thread.currentThread().getName(), e.getMessage());
         }
         return false;
     }
-    
+
     /**
-     * Initializes WebDriver based on configuration
-     * @param config Test configuration
+     * Инициализирует WebDriver для текущего треда.
+     * config передаётся снаружи — DriverManager не обращается к ConfigFactory напрямую.
      */
     public static void initDriver(TestConfig config) {
         String threadName = Thread.currentThread().getName();
-        
-        // Если драйвер уже существует для этого потока, закрываем его
+
         if (driver.get() != null) {
-            log.debug("Thread {}: Driver already exists, closing it", threadName);
+            log.debug("Thread {}: driver already exists, closing", threadName);
             quitDriver();
         }
-        
-        // Ожидаем разрешения на создание браузера
+
+        configureSelenideOnce(config);
+
         try {
-            log.info(YELLOW_TEXT + "Thread {}: Waiting for browser permit... (active: {})" + RESET_TEXT,
+            log.info("Thread {}: waiting for browser permit (active: {})",
                     threadName, activeBrowsers.get());
             browserSemaphore.acquire();
-            int currentActive = activeBrowsers.incrementAndGet();
-            log.info(GREEN_TEXT + "Thread {}: Permit acquired. Active browsers: {}" + RESET_TEXT,
-                    threadName, currentActive);
+            activeBrowsers.incrementAndGet();
+            log.info("Thread {}: permit acquired, active browsers: {}",
+                    threadName, activeBrowsers.get());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while waiting for browser permit", e);
         }
-        
+
         try {
             String browser = config.browser().toLowerCase();
-            
-            // Единственный ключ: browser.headless (headless() удалён из TestConfig)
             boolean headless = Boolean.TRUE.equals(config.browserHeadless());
-            
             String remoteUrl = config.browserRemoteUrl();
-            
-            log.info(GREEN_TEXT + "Thread {}: Initializing {} driver (headless: {})" + RESET_TEXT,
+
+            log.info("Thread {}: initializing {} driver (headless: {})",
                     threadName, browser, headless);
-            
-            WebDriver webDriver;
-            
-            if (remoteUrl != null && !remoteUrl.isEmpty()) {
-                webDriver = createRemoteDriver(browser, headless, remoteUrl);
-            } else {
-                webDriver = createLocalDriver(browser, headless);
-            }
-            
-            // Configure timeouts.
+
+            WebDriver webDriver = (remoteUrl != null && !remoteUrl.isEmpty())
+                    ? createRemoteDriver(browser, headless, remoteUrl, config)
+                    : createLocalDriver(browser, headless, config);
+
             webDriver.manage().timeouts()
                     .pageLoadTimeout(Duration.ofMillis(config.pageLoadTimeout()));
-            
-            // Set window size
+
             webDriver.manage().window().setSize(
                     new org.openqa.selenium.Dimension(config.browserWidth(), config.browserHeight())
             );
-            
+
             driver.set(webDriver);
             WebDriverRunner.setWebDriver(webDriver);
-            
-            // Configure Selenide
-            Configuration.timeout = config.explicitTimeout();
-            Configuration.screenshots = config.screenshotOnFailure();
-            Configuration.reportsFolder = config.screenshotFolder();
-            
-            log.info(GREEN_TEXT + "Thread {}: Driver initialized successfully" + RESET_TEXT, threadName);
-            
+
+            log.info("Thread {}: driver initialized", threadName);
+
         } catch (Exception e) {
-            // В случае ошибки освобождаем семафор
-            int remaining = activeBrowsers.decrementAndGet();
+            activeBrowsers.decrementAndGet();
             browserSemaphore.release();
-            log.error(RED_TEXT + "Thread {}: Failed to initialize driver: {}" + RESET_TEXT, 
-                    threadName, e.getMessage());
+            log.error("Thread {}: failed to initialize driver: {}", threadName, e.getMessage());
             throw new RuntimeException("Failed to initialize WebDriver", e);
         }
     }
-    
+
+    public static void quitDriver() {
+        String threadName = Thread.currentThread().getName();
+        WebDriver current = driver.get();
+
+        if (current != null) {
+            try {
+                log.info("Thread {}: quitting driver", threadName);
+                current.quit();
+                driver.remove();
+                WebDriverRunner.closeWebDriver();
+                log.info("Thread {}: driver quit successfully", threadName);
+            } catch (Exception e) {
+                log.error("Thread {}: error while quitting driver: {}", threadName, e.getMessage());
+            } finally {
+                activeBrowsers.decrementAndGet();
+                browserSemaphore.release();
+                log.info("Thread {}: browser permit released, active: {}",
+                        threadName, activeBrowsers.get());
+            }
+        }
+    }
+
+    public static WebDriver getDriver() {
+        return driver.get();
+    }
+
+    public static void logDriversStatus() {
+        log.info("Active browsers: {}, available permits: {}",
+                activeBrowsers.get(), browserSemaphore.availablePermits());
+    }
+
     /**
-     * Creates local WebDriver instance
+     * Selenide Configuration содержит глобальные static поля — запись из нескольких
+     * тредов одновременно создаёт race condition. Инициализируем один раз до старта
+     * параллельного выполнения. Значения одинаковы для всех тредов.
      */
-    private static WebDriver createLocalDriver(String browser, boolean headless) {
+    private static void configureSelenideOnce(TestConfig config) {
+        if (!selenideConfigured) {
+            synchronized (DriverManager.class) {
+                if (!selenideConfigured) {
+                    Configuration.timeout = config.explicitTimeout();
+                    Configuration.screenshots = config.screenshotOnFailure();
+                    Configuration.reportsFolder = config.screenshotFolder();
+                    selenideConfigured = true;
+                    log.info("Selenide configured: timeout={}ms, screenshots={}, folder={}",
+                            config.explicitTimeout(), config.screenshotOnFailure(), config.screenshotFolder());
+                }
+            }
+        }
+    }
+
+    private static WebDriver createLocalDriver(String browser, boolean headless, TestConfig config) {
         return switch (browser) {
-            case "chrome" -> createChromeDriver(headless);
-            case "firefox" -> createFirefoxDriver(headless);
-            case "edge" -> createEdgeDriver(headless);
+            case "chrome" -> createChromeDriver(headless, config);
+            case "firefox" -> createFirefoxDriver(headless, config);
+            case "edge" -> createEdgeDriver(headless, config);
             case "safari" -> createSafariDriver();
             default -> {
                 log.warn("Unknown browser: {}. Using Chrome as default", browser);
-                yield createChromeDriver(headless);
+                yield createChromeDriver(headless, config);
             }
         };
     }
-    
-    /**
-     * Creates remote WebDriver instance for Selenium Grid
-     */
-    private static WebDriver createRemoteDriver(String browser, boolean headless, String remoteUrl) 
+
+    private static WebDriver createRemoteDriver(String browser, boolean headless,
+                                                String remoteUrl, TestConfig config)
             throws MalformedURLException {
-        
-        log.info("Creating remote driver for: {} at {}", browser, remoteUrl);
-        
+        log.info("Creating remote driver: {} at {}", browser, remoteUrl);
         return switch (browser) {
             case "chrome" -> new RemoteWebDriver(new URL(remoteUrl), getChromeOptions(headless));
             case "firefox" -> new RemoteWebDriver(new URL(remoteUrl), getFirefoxOptions(headless));
             case "edge" -> new RemoteWebDriver(new URL(remoteUrl), getEdgeOptions(headless));
             case "safari" -> new RemoteWebDriver(new URL(remoteUrl), new SafariOptions());
-            default -> throw new IllegalArgumentException("Unsupported browser: " + browser);
+            default -> throw new IllegalArgumentException("Unsupported browser for remote: " + browser);
         };
     }
-    
-    private static WebDriver createChromeDriver(boolean headless) {
-        TestConfig config = ConfigFactory.getConfig();
-        
-        if (config.useLocalDrivers() && config.chromeDriverPath() != null) {
-            log.info("Using local Chrome driver from: {}", config.chromeDriverPath());
+
+    private static WebDriver createChromeDriver(boolean headless, TestConfig config) {
+        if (Boolean.TRUE.equals(config.useLocalDrivers()) && config.chromeDriverPath() != null) {
+            log.info("Using local Chrome driver: {}", config.chromeDriverPath());
             System.setProperty("webdriver.chrome.driver", config.chromeDriverPath());
         } else {
             log.info("Using WebDriverManager for Chrome");
             WebDriverManager.chromedriver().setup();
         }
-        
         return new ChromeDriver(getChromeOptions(headless));
     }
-    
+
     private static ChromeOptions getChromeOptions(boolean headless) {
         ChromeOptions options = new ChromeOptions();
-        
-        // Performance and stability
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-gpu");
-        options.addArguments("--disable-blink-features=AutomationControlled");
-        options.addArguments("--incognito");
-
-        // Additional password manager safeguards (redundant with incognito but ensures compatibility)
-        options.addArguments("--disable-save-password-bubble");
-        options.addArguments("--disable-password-generation");
-        options.addArguments("--disable-password-manager-reauthentication");
-
-        // Comprehensive preferences to disable password manager and autofill
+        options.addArguments(
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-blink-features=AutomationControlled",
+                "--incognito",
+                "--disable-save-password-bubble",
+                "--disable-password-generation",
+                "--disable-password-manager-reauthentication"
+        );
         options.setExperimentalOption("prefs", Map.of(
-            "credentials_enable_service", false,
-            "profile.password_manager_enabled", false,
-            "profile.default_content_setting_values.notifications", 2,
-            "profile.default_content_settings.popups", 0,
-            "autofill.profile_enabled", false
+                "credentials_enable_service", false,
+                "profile.password_manager_enabled", false,
+                "profile.default_content_setting_values.notifications", 2,
+                "profile.default_content_settings.popups", 0,
+                "autofill.profile_enabled", false
         ));
-
-        // Exclude automation switches that might trigger credential prompts
         options.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
-        
         if (headless) {
             options.addArguments("--headless=new");
         }
-        
         return options;
     }
-    
-    private static WebDriver createFirefoxDriver(boolean headless) {
-        TestConfig config = ConfigFactory.getConfig();
-        
-        if (config.useLocalDrivers() && config.firefoxDriverPath() != null) {
-            log.info("Using local Firefox driver from: {}", config.firefoxDriverPath());
+
+    private static WebDriver createFirefoxDriver(boolean headless, TestConfig config) {
+        if (Boolean.TRUE.equals(config.useLocalDrivers()) && config.firefoxDriverPath() != null) {
+            log.info("Using local Firefox driver: {}", config.firefoxDriverPath());
             System.setProperty("webdriver.gecko.driver", config.firefoxDriverPath());
         } else {
             log.info("Using WebDriverManager for Firefox");
             WebDriverManager.firefoxdriver().setup();
         }
-        
         return new FirefoxDriver(getFirefoxOptions(headless));
     }
-    
+
     private static FirefoxOptions getFirefoxOptions(boolean headless) {
         FirefoxOptions options = new FirefoxOptions();
-        
         if (headless) {
             options.addArguments("-headless");
         }
-        
         return options;
     }
-    
-    private static WebDriver createEdgeDriver(boolean headless) {
-        TestConfig config = ConfigFactory.getConfig();
-        
-        if (config.useLocalDrivers() && config.edgeDriverPath() != null) {
-            log.info("Using local Edge driver from: {}", config.edgeDriverPath());
+
+    private static WebDriver createEdgeDriver(boolean headless, TestConfig config) {
+        if (Boolean.TRUE.equals(config.useLocalDrivers()) && config.edgeDriverPath() != null) {
+            log.info("Using local Edge driver: {}", config.edgeDriverPath());
             System.setProperty("webdriver.edge.driver", config.edgeDriverPath());
         } else {
             log.info("Using WebDriverManager for Edge");
             WebDriverManager.edgedriver().setup();
         }
-        
         return new EdgeDriver(getEdgeOptions(headless));
     }
-    
+
     private static EdgeOptions getEdgeOptions(boolean headless) {
         EdgeOptions options = new EdgeOptions();
-        
         if (headless) {
             options.addArguments("--headless");
         }
-        
         return options;
     }
-    
+
     private static WebDriver createSafariDriver() {
-        // Safari doesn't support headless mode natively
-        // WebDriverManager not needed for Safari on macOS
         return new SafariDriver(new SafariOptions());
-    }
-    
-    /**
-     * Gets current WebDriver instance
-     * 
-     * @return WebDriver instance for current thread
-     */
-    public static WebDriver getDriver() {
-        return driver.get();
-    }
-    
-    /**
-     * Quits and removes WebDriver instance for current thread
-     */
-    /**
-     * Quits the WebDriver for the current thread and releases browser permit
-     */
-    public static void quitDriver() {
-        String threadName = Thread.currentThread().getName();
-        WebDriver currentDriver = driver.get();
-        
-        if (currentDriver != null) {
-            try {
-                log.info(CYAN_TEXT + "Thread {}: Quitting driver..." + RESET_TEXT, threadName);
-                currentDriver.quit();
-                driver.remove();
-                WebDriverRunner.closeWebDriver();
-                log.info(GREEN_TEXT + "Thread {}: Driver quit successfully" + RESET_TEXT, threadName);
-            } catch (Exception e) {
-                log.error(RED_TEXT + "Thread {}: Error while quitting driver: {}" + RESET_TEXT, 
-                        threadName, e.getMessage());
-            } finally {
-                // Освобождаем семафор и уменьшаем счетчик активных браузеров
-                int remaining = activeBrowsers.decrementAndGet();
-                browserSemaphore.release();
-                log.info(YELLOW_TEXT + "Thread {}: Browser permit released. Active browsers: {}" + RESET_TEXT,
-                        threadName, remaining);
-            }
-        }
-    }
-    
-    /**
-     * Логирование статуса драйверов (для отладки)
-     */
-    public static void logDriversStatus() {
-        log.info(CYAN_TEXT + "Active browsers: {}, Available permits: {}" + RESET_TEXT,
-                activeBrowsers.get(), browserSemaphore.availablePermits());
     }
 }
