@@ -57,7 +57,7 @@ jobs:
           echo -e "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000" \
             | sudo tee /etc/apt/preferences.d/mozilla > /dev/null
           sudo apt-get update
-          sudo apt-get install -y firefox
+          sudo apt-get install -y --allow-downgrades firefox
 
       # ─────────────────────────────────────────────
       # Restore Allure history from gh-pages
@@ -118,13 +118,14 @@ jobs:
       # Run UI tests (JUnit) - clean will delete target/
       # ─────────────────────────────────────────────
       - name: Run UI tests
+        id: run-tests
         env:
           SAUCEDEMO_BASE_URL: ${{ secrets.SAUCEDEMO_BASE_URL }}
           USER_STANDARD_USERNAME: ${{ secrets.USER_STANDARD_USERNAME }}
           USER_STANDARD_PASSWORD: ${{ secrets.USER_STANDARD_PASSWORD }}
           USER_LOCKED_USERNAME: ${{ secrets.USER_LOCKED_USERNAME }}
-          USER_PERFORMANCE_USERNAME: ${{ secrets.USER_PERFORMANCE_USERNAME }}
           USER_PROBLEM_USERNAME: ${{ secrets.USER_PROBLEM_USERNAME }}
+          USER_PERFORMANCE_USERNAME: ${{ secrets.USER_PERFORMANCE_USERNAME }}
           CHECKOUT_FIRSTNAME: ${{ secrets.CHECKOUT_FIRSTNAME }}
           CHECKOUT_LASTNAME: ${{ secrets.CHECKOUT_LASTNAME }}
           CHECKOUT_ZIPCODE: ${{ secrets.CHECKOUT_ZIPCODE }}
@@ -199,14 +200,14 @@ jobs:
       # Generate Allure report
       # ─────────────────────────────────────────────
       - name: Generate Allure Report
-        if: always()
+        if: steps.run-tests.conclusion != 'skipped'
         run: mvn allure:report
 
       # ─────────────────────────────────────────────
       # Deploy Allure report to gh-pages
       # ─────────────────────────────────────────────
       - name: Deploy Allure report to GitHub Pages
-        if: always()
+        if: steps.run-tests.conclusion != 'skipped'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
